@@ -206,28 +206,29 @@ lws_b64_decode_stateful(struct lws_b64state *s, const char *in, size_t *in_len,
  * Only reads up to in_len chars, otherwise if in_len is -1 on entry reads until
  * the first NUL in the input.
  */
-
-static size_t
-_lws_b64_decode_string(const char *in, int in_len, char *out, size_t out_size)
+ 
+static size_t _lws_b64_decode_string(const char *in, int in_len, char *out, size_t out_size)
 {
-	struct lws_b64state state;
-	size_t il = (size_t)in_len, ol = out_size;
+    struct lws_b64state state;
+    size_t il = (size_t)in_len, ol = out_size;
 
-	if (in_len == -1)
-		il = strlen(in);
+    if (in_len == -1) {
+        il = strlen(in);
+        in_len = (int)il;
+    }
 
-	lws_b64_decode_state_init(&state);
-	if (lws_b64_decode_stateful(&state, in, &il, (uint8_t *)out, &ol, 1) < 0)
-		/* pass on the failure */
-		return 0;
+    lws_b64_decode_state_init(&state);
+    if (lws_b64_decode_stateful(&state, in, &il, (uint8_t *)out, &ol, 1) < 0)
+        return 0;
 
-	if ((int)il != in_len) {
-		lwsl_err("%s: base64 must end at end of input\n", __func__);
-		return 0;
-	}
+    if ((int)il != in_len) {
+        lwsl_err("%s: base64 must end at end of input\n", __func__);
+        return 0;
+    }
 
-	return ol;
+    return ol;
 }
+
 
 int
 lws_b64_decode_string(const char *in, char *out, int out_size)
