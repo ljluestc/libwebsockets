@@ -1013,6 +1013,12 @@ lws_find_string_in_file(const char *filename, const char *string, int stringlen)
 			match = 0;
 		}
 
+		if (pos == n) {
+			if (match == stringlen)
+				hit = 1;
+			break;
+		}
+
 		if (buf[pos] == string[match])
 			match++;
 		else

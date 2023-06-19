@@ -297,6 +297,14 @@ lws_client_connect_via_info(const struct lws_client_connect_info *i)
 	wsi->client_no_follow_redirect = !!(i->ssl_connection &
 					    LCCSCF_HTTP_NO_FOLLOW_REDIRECT);
 
+	const char *header_keep_alive = "Connection: keep-alive\r\n";
+	size_t header_len = strlen(header_keep_alive);
+
+	// Send the header
+	if (lws_write(wsi, (unsigned char *)header_keep_alive, header_len, LWS_WRITE_HTTP_HEADERS) != (int)header_len) {
+		lwsl_wsi_err(wsi, "Failed to send headers");
+		goto bail;
+	}
 	/*
 	 * PHASE 5: handle external user_space now, generic alloc is done in
 	 * role finalization
