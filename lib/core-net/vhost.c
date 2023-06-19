@@ -571,65 +571,76 @@ static const struct lws_protocols protocols_dummy[] = {
 #undef LWS_HAVE_GETENV
 #endif
 
+
 struct lws_vhost *
 lws_create_vhost(struct lws_context *context,
-		 const struct lws_context_creation_info *info)
+                 const struct lws_context_creation_info *info)
 {
-	struct lws_vhost *vh, **vh1 = &context->vhost_list;
-	const struct lws_http_mount *mounts;
-	const struct lws_protocols *pcols = info->protocols;
+    struct lws_vhost *vh, **vh1 = &context->vhost_list;
+    const struct lws_http_mount *mounts;
+    const struct lws_protocols *pcols = info->protocols;
 #ifdef LWS_WITH_PLUGINS
-	struct lws_plugin *plugin = context->plugin_list;
+    struct lws_plugin *plugin = context->plugin_list;
 #endif
-	struct lws_protocols *lwsp;
-	int m, f = !info->pvo, fx = 0, abs_pcol_count = 0, sec_pcol_count = 0;
-	const char *name = "default";
-	char buf[96];
-	char *p;
+    struct lws_protocols *lwsp;
+    int m, f = !info->pvo, fx = 0, abs_pcol_count = 0, sec_pcol_count = 0;
+    const char *name = "default";
+    char buf[96];
+    char *p;
 #if defined(LWS_WITH_SYS_ASYNC_DNS)
-	extern struct lws_protocols lws_async_dns_protocol;
+    extern struct lws_protocols lws_async_dns_protocol;
 #endif
-	int n;
+    int n;
 
-	if (!pcols && context->protocols_copy)
-		pcols = context->protocols_copy;
+    if (!pcols && context->protocols_copy)
+        pcols = context->protocols_copy;
 
-	if (info->vhost_name)
-		name = info->vhost_name;
+    if (info->vhost_name)
+        name = info->vhost_name;
 
-	if (lws_fi(&info->fic, "vh_create_oom"))
-		vh = NULL;
-	else
-		vh = lws_zalloc(sizeof(*vh) + strlen(name) + 1
+    if (lws_fi(&info->fic, "vh_create_oom"))
+        vh = NULL;
+    else
+        vh = lws_zalloc(sizeof(*vh) + strlen(name) + 1
 #if defined(LWS_WITH_EVENT_LIBS)
-			+ context->event_loop_ops->evlib_size_vh
+                        + context->event_loop_ops->evlib_size_vh
 #endif
-			, __func__);
-	if (!vh)
-		goto early_bail;
+            , __func__);
+    if (!vh)
+        goto early_bail;
 
-	if (info->log_cx)
-		vh->lc.log_cx = info->log_cx;
-	else
-		vh->lc.log_cx = &log_cx;
+    if (info->log_cx)
+        vh->lc.log_cx = info->log_cx;
+    else
+        vh->lc.log_cx = &log_cx;
 
 #if defined(LWS_WITH_EVENT_LIBS)
-	vh->evlib_vh = (void *)&vh[1];
-	vh->name = (const char *)vh->evlib_vh +
-			context->event_loop_ops->evlib_size_vh;
+    vh->evlib_vh = (void *)&vh[1];
+    vh->name = (const char *)vh->evlib_vh +
+            context->event_loop_ops->evlib_size_vh;
 #else
-	vh->name = (const char *)&vh[1];
+    vh->name = (const char *)&vh[1];
 #endif
-	memcpy((char *)vh->name, name, strlen(name) + 1);
+    memcpy((char *)vh->name, name, strlen(name) + 1);
 
 #if LWS_MAX_SMP > 1
-	lws_mutex_refcount_init(&vh->mr);
+    lws_mutex_refcount_init(&vh->mr);
 #endif
 
-	if (!pcols && !info->pprotocols)
-		pcols = &protocols_dummy[0];
+    if (!pcols && !info->pprotocols)
+        pcols = &protocols_dummy[0];
 
-	vh->context = context;
+    vh->context = context;
+
+    if (info->tls_session_timeout) {
+        vh->tls_session_timeout = info->tls_session_timeout;
+        if (lws_tls_session_cache_info(context->tls_session_cache) < 0) {
+            lwsl_err("%s: Failed to set TLS session cache timeout\n", __func__);
+            goto early_bail;
+        }
+    } else {
+        vh->tls_session_timeout = 0;
+    }
 	{
 		char *end = buf + sizeof(buf) - 1;
 		p = buf;
